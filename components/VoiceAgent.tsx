@@ -16,6 +16,17 @@ function decode(base64: string) {
   return bytes;
 }
 
+// FIX: Added a safe, iterative base64 encoder to prevent stack overflow on large audio buffers.
+function encode(bytes: Uint8Array): string {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+
 async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
@@ -89,7 +100,9 @@ const VoiceAgent: React.FC = () => {
                                 int16[i] = inputData[i] * 32768;
                             }
                             
-                            sessionRef.current?.then(session => session.sendRealtimeInput({ media: { data: btoa(String.fromCharCode(...new Uint8Array(int16.buffer))), mimeType: 'audio/pcm;rate=16000' }}));
+                            // FIX: Replaced faulty encoding with the new `encode` function to prevent errors.
+                            const base64Data = encode(new Uint8Array(int16.buffer));
+                            sessionRef.current?.then(session => session.sendRealtimeInput({ media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }}));
                         };
                         source.connect(scriptProcessorRef.current);
                         scriptProcessorRef.current.connect(audioContextRef.current.destination);

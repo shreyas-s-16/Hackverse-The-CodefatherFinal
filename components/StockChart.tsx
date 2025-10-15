@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush } from 'recharts';
 import Card from './common/Card';
 import { MOCK_CHART_DATA, MOCK_CHART_DATA_5D, MOCK_CHART_DATA_1M, MOCK_CHART_DATA_6M } from '../constants';
 import { ChartDataPoint } from '../types';
 
 const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
+    const getLabelName = () => {
+        if (!label) return 'Time';
+        // Heuristic for mock data to differentiate intraday from longer timeframes
+        if (String(label).includes('ago') || String(label).includes('Week') || String(label).includes('month')) {
+            return 'Date';
+        }
+        return 'Time';
+    };
+
     if (active && payload && payload.length) {
         return (
             <div className="bg-gray-700 p-2 border border-gray-600 rounded-md shadow-lg">
-                <p className="label text-sm text-gray-200">{`Time: ${label}`}</p>
+                <p className="label text-sm text-gray-200">{`${getLabelName()}: ${label}`}</p>
                 <p className="intro text-sm text-green-400">{`Price: ₹${payload[0].value.toFixed(2)}`}</p>
             </div>
         );
@@ -76,6 +85,19 @@ const StockChart: React.FC = () => {
                             <YAxis stroke="#a0aec0" domain={['dataMin - 10', 'dataMax + 10']} fontSize={12} />
                             <Tooltip content={<CustomTooltip />} />
                             <Area type="monotone" dataKey="price" stroke="#10b981" fillOpacity={1} fill="url(#colorPrice)" />
+                            {/* Added Brush component for zoom and pan functionality */}
+                            <Brush 
+                                dataKey="name" 
+                                height={30} 
+                                stroke="#10b981" 
+                                fill="#1f2937" 
+                                travellerWidth={10} 
+                                travellerProps={{ stroke: '#a0aec0' }}
+                            >
+                                <AreaChart>
+                                    <Area dataKey="price" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
+                                </AreaChart>
+                            </Brush>
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
