@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, LiveSession, Modality, FunctionDeclaration, Type, LiveServerMessage } from '@google/genai';
-import { tradeFunctionDeclarations } from '../services/geminiService';
+import { agentFunctionDeclarations, getFinancialInsight } from '../services/geminiService';
 import { MicrophoneIcon, StopCircleIcon, InformationCircleIcon } from './common/Icons';
 import { TradeOrder } from '../types';
 import { MOCK_STOCKS } from '../constants';
@@ -73,8 +73,8 @@ const VoiceAgent: React.FC = () => {
                     responseModalities: [Modality.AUDIO],
                     inputAudioTranscription: {},
                     outputAudioTranscription: {},
-                    tools: [{ functionDeclarations: tradeFunctionDeclarations }],
-                    systemInstruction: `You are a helpful stock trading assistant for the Indian stock market (NSE). You can execute trades and get stock prices. When executing a trade, always confirm the action back to the user clearly. When asked for a price, find it in the provided list: ${JSON.stringify(MOCK_STOCKS)}. All prices are in Indian Rupees (INR). Respond concisely.`
+                    tools: [{ functionDeclarations: agentFunctionDeclarations }],
+                    systemInstruction: `You are a helpful stock trading assistant for the Indian stock market (NSE). You can execute trades, get stock prices, and answer questions about market trends, economic indicators, and investment strategies. When executing a trade, always confirm the action. When asked for a price, find it in the provided list: ${JSON.stringify(MOCK_STOCKS)}. All prices are in Indian Rupees (INR). For general financial questions, use the get_market_insights tool. Respond concisely.`
                 },
                 callbacks: {
                     onopen: () => {
@@ -122,6 +122,11 @@ const VoiceAgent: React.FC = () => {
                                      const stock = MOCK_STOCKS.find(s => s.symbol.toUpperCase() === symbol.toUpperCase());
                                      const result = stock ? `The current price of ${symbol.toUpperCase()} is ₹${stock.price}.` : `Sorry, I could not find the price for ${symbol.toUpperCase()}.`;
                                      sessionRef.current?.then(session => session.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result } } }));
+                                }
+                                if (fc.name === 'get_market_insights' && fc.args) {
+                                    const { query } = fc.args as { query: string };
+                                    const insight = await getFinancialInsight(query);
+                                    sessionRef.current?.then(session => session.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result: insight } } }));
                                 }
                             }
                         }
