@@ -30,3 +30,28 @@ export const MOCK_CHART_DATA: ChartDataPoint[] = [
     { name: '3:30', price: 2856.90 },
     { name: '4:00', price: 2855.50 },
 ];
+
+export const MOCK_CHART_DATA_5D: ChartDataPoint[] = [
+    { name: '5 days ago', price: 2820.75 },
+    { name: '4 days ago', price: 2835.10 },
+    { name: '3 days ago', price: 2815.90 },
+    { name: '2 days ago', price: 2850.30 },
+    { name: 'Yesterday', price: 2848.00 },
+    { name: 'Today', price: 2855.50 },
+];
+
+export const MOCK_CHART_DATA_1M: ChartDataPoint[] = [
+    { name: 'Week 1', price: 2750.45 },
+    { name: 'Week 2', price: 2790.80 },
+    { name: 'Week 3', price: 2810.25 },
+    { name: 'Week 4', price: 2855.50 },
+];
+
+export const MOCK_CHART_DATA_6M: ChartDataPoint[] = [
+    { name: '6M ago', price: 2500.00 },
+    { name: '5M ago', price: 2650.50 },
+    { name: '4M ago', price: 2600.75 },
+    { name: '3M ago', price: 2750.10 },
+    { name: '2M ago', price: 2800.90 },
+    { name: 'Last month', price: 2855.50 },
+];
