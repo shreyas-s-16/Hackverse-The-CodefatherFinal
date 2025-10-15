@@ -1,9 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, LiveSession, Modality, FunctionDeclaration, Type, LiveServerMessage } from '@google/genai';
+import { GoogleGenAI, LiveSession, Modality, LiveServerMessage } from '@google/genai';
 import { agentFunctionDeclarations, getFinancialInsight } from '../services/geminiService';
-import { MicrophoneIcon, StopCircleIcon, InformationCircleIcon } from './common/Icons';
+import { MicrophoneIcon, StopCircleIcon } from './common/Icons';
 import { TradeOrder } from '../types';
 import { MOCK_STOCKS } from '../constants';
+
+// FIX: Add recommended encode function for audio data.
+function encode(bytes: Uint8Array) {
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
 
 // Helper functions for audio encoding/decoding
 function decode(base64: string) {
@@ -35,12 +45,17 @@ async function decodeAudioData(
   return buffer;
 }
 
-const VoiceAgent: React.FC = () => {
+// FIX: Update props to lift state up.
+interface VoiceAgentProps {
+    onNewTrade: (order: TradeOrder) => void;
+}
+
+
+const VoiceAgent: React.FC<VoiceAgentProps> = ({ onNewTrade }) => {
     const [isActive, setIsActive] = useState(false);
     const [userTranscript, setUserTranscript] = useState('');
     const [agentResponse, setAgentResponse] = useState('');
-    const [notifications, setNotifications] = useState<TradeOrder[]>([]);
-
+    
     const sessionRef = useRef<Promise<LiveSession> | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -84,12 +99,14 @@ const VoiceAgent: React.FC = () => {
                         scriptProcessorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
                         scriptProcessorRef.current.onaudioprocess = (event) => {
                             const inputData = event.inputBuffer.getChannelData(0);
-                            const int16 = new Int16Array(inputData.length);
-                            for (let i = 0; i < inputData.length; i++) {
+                            // FIX: Use recommended, safe audio encoding method.
+                            const l = inputData.length;
+                            const int16 = new Int16Array(l);
+                            for (let i = 0; i < l; i++) {
                                 int16[i] = inputData[i] * 32768;
                             }
-                            
-                            sessionRef.current?.then(session => session.sendRealtimeInput({ media: { data: btoa(String.fromCharCode(...new Uint8Array(int16.buffer))), mimeType: 'audio/pcm;rate=16000' }}));
+                            const data = encode(new Uint8Array(int16.buffer));
+                            sessionRef.current?.then(session => session.sendRealtimeInput({ media: { data, mimeType: 'audio/pcm;rate=16000' }}));
                         };
                         source.connect(scriptProcessorRef.current);
                         scriptProcessorRef.current.connect(audioContextRef.current.destination);
@@ -114,7 +131,8 @@ const VoiceAgent: React.FC = () => {
                                     const stock = MOCK_STOCKS.find(s => s.symbol.toUpperCase() === symbol.toUpperCase());
                                     const price = stock ? stock.price : 0;
                                     const newOrder = { action, symbol: symbol.toUpperCase(), quantity, price };
-                                    setNotifications(prev => [newOrder, ...prev]);
+                                    // FIX: Lift state up to parent component.
+                                    onNewTrade(newOrder);
                                     sessionRef.current?.then(session => session.sendToolResponse({ functionResponses: { id: fc.id, name: fc.name, response: { result: "OK, trade simulated successfully." } } }));
                                 }
                                 if (fc.name === 'get_stock_price' && fc.args) {
@@ -193,7 +211,7 @@ const VoiceAgent: React.FC = () => {
     }, []);
 
     return (
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl shadow-lg p-4 flex flex-col items-center justify-center space-y-4 min-h-[200px]">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl shadow-lg p-4 flex flex-col items-center justify-center space-y-4 min-h-[200px] h-full">
             <button
                 onClick={isActive ? stopSession : startSession}
                 className={`relative flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300 ${isActive ? 'bg-red-500' : 'bg-green-500 hover:bg-green-600'}`}
@@ -206,22 +224,6 @@ const VoiceAgent: React.FC = () => {
                 <p className="text-sm text-gray-400 min-h-[20px]">{userTranscript || (isActive ? ' ' : 'Press mic to start')}</p>
                 <p className="font-semibold text-green-300 min-h-[24px]">{agentResponse}</p>
             </div>
-            
-            {notifications.length > 0 && (
-                <div className="w-full pt-2 border-t border-gray-700">
-                    <h4 className="text-sm font-semibold text-center text-gray-300 mb-2">Simulated Order Executions</h4>
-                    <div className="max-h-24 overflow-y-auto space-y-1">
-                        {notifications.map((order, index) => (
-                            <div key={index} className="flex items-center text-xs bg-gray-700/50 p-1.5 rounded-md">
-                                <InformationCircleIcon className={`w-4 h-4 mr-2 ${order.action === 'BUY' ? 'text-green-400' : 'text-red-400'}`} />
-                                <span className="font-mono">
-                                    {order.action} {order.quantity} {order.symbol} @ ₹{order.price.toFixed(2)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

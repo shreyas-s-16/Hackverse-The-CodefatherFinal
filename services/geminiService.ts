@@ -90,7 +90,11 @@ export const getAiPredictions = async (portfolio: PortfolioHolding[], chartData:
             },
         });
 
-        const jsonText = response.text.trim();
+        // FIX: Handle JSON responses that may be wrapped in markdown.
+        let jsonText = response.text.trim();
+        if (jsonText.startsWith('```json')) {
+            jsonText = jsonText.substring(7, jsonText.length - 3).trim();
+        }
         return JSON.parse(jsonText);
     } catch (error) {
         console.error("Error getting AI predictions:", error);
