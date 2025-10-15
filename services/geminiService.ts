@@ -98,8 +98,29 @@ export const getAiPredictions = async (portfolio: PortfolioHolding[], chartData:
     }
 };
 
+export const getFinancialInsight = async (query: string): Promise<string> => {
+    const prompt = `
+        As an expert financial analyst for the Indian stock market, provide a clear and concise answer to the following user query.
+        Focus on providing educational insights, explaining concepts simply, and citing potential factors influencing the market.
+        Do not provide direct financial advice.
 
-export const tradeFunctionDeclarations: FunctionDeclaration[] = [
+        User Query: "${query}"
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error getting financial insight:", error);
+        return "I'm sorry, I couldn't process that request at the moment.";
+    }
+};
+
+
+export const agentFunctionDeclarations: FunctionDeclaration[] = [
     {
         name: 'execute_stock_trade',
         description: 'Execute a stock trade (buy or sell) on the Indian stock market.',
@@ -135,6 +156,20 @@ export const tradeFunctionDeclarations: FunctionDeclaration[] = [
                 },
             },
             required: ['symbol'],
+        },
+    },
+    {
+        name: 'get_market_insights',
+        description: 'Get expert analysis on financial market trends, economic indicators, investment strategies, or other general financial questions related to the Indian market.',
+        parameters: {
+            type: Type.OBJECT,
+            properties: {
+                query: {
+                    type: Type.STRING,
+                    description: 'The user\'s detailed question about the financial markets.',
+                },
+            },
+            required: ['query'],
         },
     }
 ];
