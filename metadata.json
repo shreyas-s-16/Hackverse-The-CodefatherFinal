@@ -1,0 +1,7 @@
+{
+  "name": "Stonks AI",
+  "description": "An AI-powered stock market dashboard featuring a voice agent for natural language trading, portfolio analysis, advanced charting, and real-time news insights.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
