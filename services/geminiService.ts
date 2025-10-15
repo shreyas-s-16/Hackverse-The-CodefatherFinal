@@ -1,5 +1,5 @@
 import { GoogleGenAI, FunctionDeclaration, Type } from '@google/genai';
-import type { PortfolioHolding } from '../types';
+import type { PortfolioHolding, ChartDataPoint, StockPrediction } from '../types';
 
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set");
@@ -54,6 +54,50 @@ export const getNews = async (ticker: string): Promise<{ summary: string; source
         return { summary: "Could not fetch news at this time.", sources: [] };
     }
 };
+
+export const getAiPredictions = async (portfolio: PortfolioHolding[], chartData: ChartDataPoint[]): Promise<StockPrediction[]> => {
+    const holdingsInfo = portfolio.map(h => `${h.symbol} (current price: ${h.currentPrice.toFixed(2)})`).join(', ');
+    const chartInfo = `The primary stock being charted shows the following intraday trend: ${chartData.map(d => `${d.name}: ${d.price}`).join(', ')}.`;
+
+    const prompt = `
+        As a financial analyst for the Indian stock market (NSE), predict the short-term future price for the following holdings based on the provided chart pattern and general knowledge of current affairs.
+        
+        Holdings: ${holdingsInfo}
+        
+        Reference Chart Data: ${chartInfo}
+        
+        For each stock, provide a target price and a brief rationale (1-2 sentences) for your prediction. The rationale should consider technical indicators suggested by the chart and potential impacts of recent news or market sentiment.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            symbol: { type: Type.STRING },
+                            targetPrice: { type: Type.NUMBER },
+                            rationale: { type: Type.STRING },
+                        },
+                        required: ['symbol', 'targetPrice', 'rationale'],
+                    },
+                },
+            },
+        });
+
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error getting AI predictions:", error);
+        return [];
+    }
+};
+
 
 export const tradeFunctionDeclarations: FunctionDeclaration[] = [
     {
