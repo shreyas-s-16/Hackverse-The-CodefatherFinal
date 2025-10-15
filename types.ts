@@ -1,4 +1,3 @@
-
 export interface Stock {
     symbol: string;
     name: string;
@@ -15,17 +14,7 @@ export interface PortfolioHolding {
     currentPrice: number;
 }
 
-export interface ChartDataPoint {
-    name: string;
-    price: number;
-}
-
-export interface StockPrediction {
-    symbol: string;
-    targetPrice: number;
-    rationale: string;
-}
-
+// FIX: Updated NewsArticle interface to match the structure of grounding chunks from the Gemini API.
 export interface NewsArticle {
     web: {
         uri: string;
@@ -38,4 +27,15 @@ export interface TradeOrder {
     symbol: string;
     quantity: number;
     price: number;
+}
+
+export interface ChartDataPoint {
+    name: string;
+    price: number;
+}
+
+export interface StockPrediction {
+    symbol: string;
+    targetPrice: number;
+    rationale: string;
 }
